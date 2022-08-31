@@ -19,6 +19,7 @@ contract ApeiroPage is ERC1155, Ownable {
     uint256 private _canMintInBatch = 0;
     uint256 private _mintedInBatch = 0;
     uint256 private _maxMint = 0;
+    mapping(address => bool) private whitelistedAddresses;
     string public cid = "QmPc683wwnpoNe8pSDk91oHhsT9sihxYEgEPzEM8o9eVfB";
     USDC public usdc;
 
@@ -56,6 +57,7 @@ contract ApeiroPage is ERC1155, Ownable {
         uint256 mintId = _totalMinted + 1;
         require(alreadyMinted < _canMintInBatch, "Sold out");
         require(_price <= _amountInUsdc, "USDC value sent is not correct");
+        require(whitelistedAddresses[msg.sender], "Not in whitelist, can't mint");
         // Transfer the USDC to contract
         bool success = usdc.transferFrom(msg.sender, address(this), _amountInUsdc);
         require(success, "Buy failed");
@@ -92,7 +94,7 @@ contract ApeiroPage is ERC1155, Ownable {
         return _maxMint;
     }
 
-    function getPrice()  public view virtual returns (uint256) {
+    function getPrice() public view virtual returns (uint256) {
         return _price;
     }
 
@@ -103,4 +105,21 @@ contract ApeiroPage is ERC1155, Ownable {
     function availableForWithdrawl() public view virtual returns (uint256){
         return usdc.balanceOf(address(this));
     }
+
+    function isWhitelisted(address addr) public view virtual returns (bool) {
+        return whitelistedAddresses[addr];
+    }
+
+    function whitelistAddresses(address[] memory addresses) external onlyOwner {
+        for (uint i = 0; i < addresses.length; i++) {
+            whitelistedAddresses[addresses[i]] = true;
+        }
+    }
+
+    function removeFromWhitelist(address[] memory addresses) external onlyOwner {
+        for (uint i = 0; i < addresses.length; i++) {
+            whitelistedAddresses[addresses[i]] = false;
+        }
+    }
+
 }
